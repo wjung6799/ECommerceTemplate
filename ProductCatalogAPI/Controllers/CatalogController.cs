@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using ProductCatalogAPI.Data;
 using ProductCatalogAPI.Domain;
+using ProductCatalogAPI.ViewModels;
 
 namespace ProductCatalogAPI.Controllers
 {
@@ -40,8 +41,15 @@ namespace ProductCatalogAPI.Controllers
                 .ToListAsync();
 
             items = ChangePictureUrl(items);
+            var model = new PaginatedItemsViewModel<CatalogItem>
+            {
+                PageIndex = pageIndex,
+                PageSize = pageSize,
+                Count = itemsCount,
+                Data = items
+            };
 
-            return Ok(items);
+            return Ok(model);
         }
 
         [HttpGet]
@@ -76,7 +84,15 @@ namespace ProductCatalogAPI.Controllers
 
             items = ChangePictureUrl(items);
 
-            return Ok(items);
+            var model = new PaginatedItemsViewModel<CatalogItem>
+            {
+                PageIndex = pageIndex,
+                PageSize = pageSize,
+                Count = itemsCount,
+                Data = items
+            };
+
+            return Ok(model);
         }
 
 
