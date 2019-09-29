@@ -1,0 +1,54 @@
+@using Microsoft.AspNetCore.Identity
+
+
+
+@if (User.FindFirst(x => x.Type == "preferred_username") != null)
+{
+
+    <section class="col-lg-4 col-md-5 col-xs-12">
+        <div class="esh-identity">
+            <form asp-area="" asp-controller="Account" asp-action="SignOut" method="post" id="logoutForm" class="navbar-right">
+                <section class="esh-identity-section">
+
+                    <div class="esh-identity-name">@User.FindFirst(x => x.Type == "preferred_username").Value</div>
+                    @*<div class="esh-identity-name">@User.Identity.Name</div>*@
+                    <img class="esh-identity-image" src="~/images/arrow-down.png">
+                </section>
+
+                <section class="esh-identity-drop">
+
+
+
+
+
+                    <a class="esh-identity-item"
+                       href="javascript:document.getElementById('logoutForm').submit()">
+
+                        <div class="esh-identity-name esh-identity-name--upper">Log Out</div>
+                        <img class="esh-identity-image" src="~/images/logout.png">
+                    </a>
+                </section>
+            </form>
+        </div>
+    </section>
+
+    <section class="col-lg-1 col-xs-12"></section>
+
+}
+else
+{
+    <section class="col-lg-4 col-md-5 col-xs-12">
+        <div class="esh-identity">
+            <section class="esh-identity-section">
+                <div class="esh-identity-item">
+
+                    <a asp-area="" asp-controller="Account" asp-action="SignIn" class="esh-identity-name esh-identity-name--upper">
+                        Login
+                    </a>
+                </div>
+            </section>
+        </div>
+    </section>
+
+    <section class="col-lg-1 col-xs-12"></section>
+}

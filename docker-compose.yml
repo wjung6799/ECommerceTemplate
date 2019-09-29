@@ -18,12 +18,28 @@ services:
       ExternalCatalogBaseUrl: http://localhost:6080
     ports:
       - "6080:80"
-    container_name: catalogapi
+    container_name: jewelscatalogapi
     networks:
       - backend
       - frontend
     depends_on:
       - mssqlserver
+
+  webmvc:
+    build:
+      context: .\webmvc
+      dockerfile: Dockerfile
+    image: jewels/webmvc
+    container_name: webshop
+    environment:
+      CatalogUrl: http://catalog
+      ASPNETCORE_ENVIRONMENT: Development
+    ports:
+      - "5208:80"
+    networks:
+      - frontend
+    depends_on:
+      - catalog
 
   mssqlserver:
     image: "microsoft/mssql-server-linux:latest"
