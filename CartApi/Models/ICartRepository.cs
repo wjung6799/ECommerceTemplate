@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 
 namespace CartApi.Models
 {
-    interface ICartRepository
+    public interface ICartRepository
     {
         Task<Cart> GetCartAsync(string cartId);
         IEnumerable<string> GetUsers();

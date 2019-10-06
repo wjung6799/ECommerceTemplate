@@ -42,6 +42,25 @@ services:
     depends_on:
       - mssqlserver
 
+  cart:
+    build:
+      context: .\CartApi
+      dockerfile: Dockerfile
+    image: jewels/cartapi
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      IdentityUrl: http://10.10.10.30:6070
+      ConnectionString: basket.data
+    ports:
+      - "6065:80"
+    container_name: cartapi
+    networks:
+      - backend
+      - frontend
+    depends_on:
+      - basket.data
+      - tokenserver
+
 
   webmvc:
     build:
@@ -72,3 +91,11 @@ services:
       - "1448:1433"
     networks:
       - backend
+
+
+  basket.data:
+    image: redis
+    ports:
+      - "6078:6379"  
+    networks:
+      - backend 
