@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using WebMVC.Models;
+using WebMVC.Models.CartModels;
 using WebMVC.Services;
 
 namespace WebMVC.Controllers
@@ -59,6 +60,37 @@ namespace WebMVC.Controllers
             return View();
 
         }
+
+        public async Task<IActionResult> AddToCart(CatalogItem productDetails)
+        {
+            try
+            {
+                if (productDetails.Id != null)
+                {
+                    var user = _identityService.Get(HttpContext.User);
+                    var product = new CartItem()
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        Quantity = 1,
+                        ProductName = productDetails.Name,
+                        PictureUrl = productDetails.PictureUrl,
+                        UnitPrice = productDetails.Price,
+                        ProductId = productDetails.Id
+                    };
+                    await _cartService.AddItemToCart(user, product);
+                }
+            }
+            catch (BrokenCircuitException)
+            {
+                // Catch error when CartApi is in circuit-opened mode                 
+                HandleBrokenCircuitException();
+            }
+
+            return RedirectToAction("Index", "Catalog");
+
+        }
+
+
         private void HandleBrokenCircuitException()
         {
             TempData["BasketInoperativeMsg"] = "cart Service is inoperative, please try later on. (Business Msg Due to Circuit-Breaker)";

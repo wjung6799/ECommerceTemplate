@@ -17,7 +17,7 @@ namespace WebMVC.Services
                 var user = new ApplicationUser()
                 {
                     Email = claims.Claims.FirstOrDefault(x => x.Type == "preferred_username")?.Value ?? "",
-                    Id = claims.Claims.FirstOrDefault(x => x.Type == "sub")?.Value ?? "",
+                    Id = claims.Claims.FirstOrDefault(x => x.Type == "name")?.Value ?? "",
                 };
 
                 return user;

@@ -75,7 +75,7 @@ namespace CartApi
         private void ConfigureAuthService(IServiceCollection services)
         {
             // prevent from mapping "sub" claim to nameidentifier.
-            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+            //JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
             var identityUrl = Configuration.GetValue<string>("IdentityUrl");
 

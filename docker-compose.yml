@@ -73,6 +73,8 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       IdentityUrl: http://10.10.10.30:6070
       CallBackUrl: http://localhost:5208
+      CartUrl: http://cart
+
     ports:
       - "5208:80"
     networks:
@@ -80,6 +82,7 @@ services:
     depends_on:
       - catalog
       - tokenserver
+      - cart
 
   mssqlserver:
     image: "microsoft/mssql-server-linux:latest"
