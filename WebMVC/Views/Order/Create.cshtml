@@ -1,0 +1,205 @@
+@using Microsoft.AspNetCore.Identity
+@using WebMVC.Services
+@using WebMVC.ViewModels
+@using WebMvc.Models.OrderModels
+@model  Order
+@inject IIdentityService<ApplicationUser> UserManager
+
+    @{
+    ViewData["Title"] = "New Order";
+    }
+    @Html.Partial("_Header", new List<Header>() { new Header() { Controller = "Cart", Text = "Back to cart" } })
+   <div class="container">
+    <form method="post" asp-controller="Order" asp-action="Create" id="payment-form">
+        <section class="esh-orders_new-section">
+            <div class="row">
+                @foreach (var error in ViewData.ModelState.Values.SelectMany(err => err.Errors))
+                {
+                    <div class="alert alert-warning" role="alert">
+                        &nbsp;@error.ErrorMessage
+                    </div>
+                }
+            </div>
+            <h4 class="esh-orders_new-title">Shipping address</h4>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="@Model.FirstName" class="esh-orders_new-title">First Name</label>
+                        <input asp-for="@Model.FirstName" class="form-control form-input" type="text" placeholder="FirstName" />
+                        <span asp-validation-for="@Model.FirstName" class="alert alert-danger" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="@Model.LastName" class="esh-orders_new-title">Last Name</label>
+                        <input asp-for="@Model.LastName" class="form-control form-input" type="text" placeholder="LastName" />
+                        <span asp-validation-for="@Model.LastName" class="alert alert-danger" />
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label asp-for="@Model.Address" class="esh-orders_new-title">Address</label>
+                        <input asp-for="@Model.Address" class="form-control form-input" type="text" placeholder="Address" />
+                        <span asp-validation-for="@Model.Address" class="alert alert-danger" />
+                    </div>
+                </div>
+                @*<div class="col-md-6">
+                        <div class="form-group">
+                            <label asp-for="Country" class="esh-orders_new-title">Country</label>
+                            <input asp-for="Country" class="form-control form-input" type="text" placeholder="Country" />
+                            <span asp-validation-for="Country" class="alert alert-danger" />
+                        </div>
+                    </div>*@
+            </div>
+        </section>
+
+        @await Html.PartialAsync("_OrderItems")
+
+        <section class="esh-orders_new-section esh-orders_new-section--right">
+            <div class="form-group">
+                <div class="col-md-3">
+                </div>
+                <div class="col-md-8">
+                    <div id="payment-form-container" class="col-md-8 well" style="width:480px;margin:20px auto;">
+                        <div class="form-group">
+                            <label class="control-label">Accepted</label>
+                            <div class="row">
+                                <div class="col-md-10 card-images">
+                                    <img src="~/images/creditcards/visa.png" alt="visa" />
+                                    <img src="~/images/creditcards/mastercard.png" alt="mastercard" />
+                                    <img src="~/images/creditcards/amex.png" alt="amex" />
+                                    <img src="~/images/creditcards/discover.png" alt="discover" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="card-element">Credit or debit card</label>
+                            <div id="card-element" class="field">
+
+                                <!-- a stripe Element will be inserted here. --->
+                            </div>
+
+                        </div>
+
+                        <div id="card-errors" role="alert"></div>
+
+                        <h3 class="validation"></h3>
+                        <p class="alert alert-danger payment-errors" style="display:none; "></p>
+
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
+        <section class="esh-orders_new-section">
+            <div class="form-group">
+                <div class="col-md-9">
+                    <input asp-for="@Model.OrderTotal" name="OrderTotal" type="hidden" />
+                </div>
+                <div class="col-md-2">
+                    <input id="pay-button" type="submit" value="[ Pay And Place Order ]" name="action" class="btn esh-orders_new-placeOrder" />
+                </div>
+            </div>
+        </section>
+
+        @*     <input asp-for="RequestId" type="hidden" value="@Guid.NewGuid().ToString()" />
+    <input asp-for="OrderGuid" type="hidden" />
+    <input asp-for="Buyer" type="hidden" />*@
+          
+    </form>
+
+</div>
+
+@section Scripts {
+        @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+
+<script src="https://js.stripe.com/v3/"></script>
+
+
+<script type="text/javascript">
+
+        jQuery(function ($) {
+
+             var stripe = Stripe('@ViewBag.StripePublishableKey');
+        
+            var elements = stripe.elements();
+            var card = elements.create('card', {
+                iconStyle: 'solid',
+                style: {
+                    base: {
+                        iconColor: '#8898AA',
+                        color: 'blue',
+                        lineHeight: '36px',
+                        fontWeight: 300,
+                        fontFamily: '"Helvetica Neue", Helvetica, sans-serif',
+                        fontSize: '16px',
+
+                        '::placeholder': {
+                            color: '#8898AA',
+                        },
+                    },
+                    invalid: {
+                        iconColor: '#e85746',
+                        color: '#e85746',
+                    }
+                },
+                classes: {
+                    focus: 'is-focused',
+                    empty: 'is-empty',
+                },
+            });
+            card.mount('#card-element');
+
+
+
+            function stripeTokenHandler(token) {
+                var  form = document.getElementById('payment-form');
+                var hiddenInput = document.createElement('input');
+                hiddenInput.setAttribute('type', 'hidden');
+                hiddenInput.setAttribute('name', 'stripeToken');
+                hiddenInput.setAttribute('value', token.id);
+                form.appendChild(hiddenInput);
+                form.submit();
+            }
+
+            function createToken() {
+                stripe.createToken(card).then(function (result) {
+                    if (result.error) {
+                        var errorElement = document.getElementById('card-errors');
+                        errorElement.textContent = result.error.message;
+
+                    }
+                    else {
+                        stripeTokenHandler(result.token);
+
+                    }
+
+                });
+
+            };
+            var form = document.getElementById('payment-form');
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                createToken();
+            });
+            card.addEventListener('change', function (event) {
+                var displayError = document.getElementById('card-errors');
+                if (event.error) {
+                    displayError.textContent = event.error.message;
+
+
+                }
+                else {
+                    displayError.textContent = ' ';
+
+                }
+
+            });
+
+        });
+
+  
+    </script>
+    }

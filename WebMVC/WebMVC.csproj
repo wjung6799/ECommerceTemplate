@@ -13,6 +13,7 @@
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.7.12" />
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.2.3" />
     <PackageReference Include="Polly" Version="7.1.1" />
+    <PackageReference Include="Stripe.net" Version="17.8.0" />
   </ItemGroup>
 
 </Project>

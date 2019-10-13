@@ -16,9 +16,17 @@ namespace WebMVC.Infrastructure
         {
             _client = new HttpClient();
         }
-        public Task<HttpResponseMessage> DeleteAsync(string uri, string authorizationToken = null, string authorizationMethod = "Bearer")
+        public async Task<HttpResponseMessage> DeleteAsync(string uri, string authorizationToken = null, string authorizationMethod = "Bearer")
         {
-            throw new NotImplementedException();
+            var requestMessage = new HttpRequestMessage(HttpMethod.Delete, uri);
+            if (authorizationToken != null)
+            {
+
+                requestMessage.Headers.Authorization = new AuthenticationHeaderValue(authorizationMethod, authorizationToken);
+
+            }
+
+            return await _client.SendAsync(requestMessage);
         }
 
         public async Task<string> GetStringAsync(string uri, string authorizationToken = null, string authorizationMethod = "Bearer")

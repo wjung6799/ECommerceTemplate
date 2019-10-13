@@ -2,62 +2,77 @@
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Reflection;
 using System.Threading.Tasks;
 using Autofac;
 using Autofac.Extensions.DependencyInjection;
-using CartApi.Infrastructure.Filters;
-using CartApi.Messaging.Consumers;
-using CartApi.Models;
+using JewelsOnContainers.Services.OrderApi.Infrastructure.Filters;
 using MassTransit;
-using MassTransit.Util;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using StackExchange.Redis;
+using OrderApi.Data;
+using RabbitMQ.Client;
 using Swashbuckle.AspNetCore.Swagger;
 
-namespace CartApi
+namespace OrderApi
 {
     public class Startup
     {
-        public Startup(IConfiguration configuration)
+        ILogger _logger;
+        public IContainer ApplicationContainer { get; private set; }
+        public Startup(ILoggerFactory loggerFactory, IConfiguration configuration)
         {
+            _logger = loggerFactory.CreateLogger<Startup>();
             Configuration = configuration;
         }
 
         public IConfiguration Configuration { get; }
-        public IContainer ApplicationContainer { get; private set; }
 
         // This method gets called by the runtime. Use this method to add services to the container.
         public IServiceProvider ConfigureServices(IServiceCollection services)
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
-            services.AddTransient<ICartRepository, RedisCartRepository>();
-            services.AddSingleton<ConnectionMultiplexer>(sp =>
-            {
-                //var settings = sp.GetRequiredService<IOptions<CartSettings>>().Value;
-                var configuration = ConfigurationOptions.Parse(Configuration["ConnectionString"], true);
-                //resolving via dns before connecting
-                configuration.ResolveDns = true;
-                configuration.AbortOnConnectFail = false;
+            ConfigureAuthService(services);
+            var hostname = Environment.GetEnvironmentVariable("SQLSERVER_HOST") ?? "catalogdb";
+            var password = Environment.GetEnvironmentVariable("SA_PASSWORD") ?? "ProductApi(!)";
+            var database = Environment.GetEnvironmentVariable("DATABASE") ?? "OrdersDb";
 
-                return ConnectionMultiplexer.Connect(configuration);
+            var connectionString = $"Server={hostname};Database={database};User ID=sa;Password={password};";
+
+
+            services.AddDbContext<OrdersContext>(options =>
+            {
+                options.UseSqlServer(connectionString,
+                                     sqlServerOptionsAction: sqlOptions =>
+                                     {
+                                         sqlOptions.MigrationsAssembly(typeof(Startup).GetTypeInfo().Assembly.GetName().Name);
+                                         //Configuring Connection Resiliency: https://docs.microsoft.com/en-us/ef/core/miscellaneous/connection-resiliency 
+                                         sqlOptions.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(30), errorNumbersToAdd: null);
+                                     });
+
+                // Changing default behavior when client evaluation occurs to throw. 
+                // Default in EF Core would be to log a warning when client evaluation is performed.
+                options.ConfigureWarnings(warnings => warnings.Throw(RelationalEventId.QueryClientEvaluationWarning));
+                //Check Client vs. Server evaluation: https://docs.microsoft.com/en-us/ef/core/querying/client-eval
             });
 
-            ConfigureAuthService(services);
+
             services.AddSwaggerGen(options =>
             {
                 options.DescribeAllEnumsAsStrings();
                 options.SwaggerDoc("v1", new Info
                 {
-                    Title = "Basket HTTP API",
+                    Title = "Ordering HTTP API",
                     Version = "v1",
-                    Description = "The Basket Service HTTP API",
+                    Description = "The Ordering Service HTTP API",
                     TermsOfService = "Terms Of Service"
                 });
                 options.AddSecurityDefinition("oauth2", new OAuth2Scheme
@@ -68,59 +83,51 @@ namespace CartApi
                     TokenUrl = $"{Configuration.GetValue<string>("IdentityUrl")}/connect/token",
                     Scopes = new Dictionary<string, string>()
                     {
-                        { "basket", "Basket Api" }
+                        { "order", "Order Api" }
                     }
+
                 });
-
                 options.OperationFilter<AuthorizeCheckOperationFilter>();
-
             });
-            var builder = new ContainerBuilder();
 
-            // register a specific consumer
-            builder.RegisterType<OrderCompletedEventConsumer>();
-
-            builder.Register(context =>
+            services.AddCors(options =>
             {
-                var busControl = Bus.Factory.CreateUsingRabbitMq(cfg =>
+                options.AddPolicy("CorsPolicy",
+                    poly => poly.AllowAnyOrigin()
+                    .AllowAnyMethod()
+                    .AllowAnyHeader()
+                    .AllowCredentials());
+            });
+
+            var builder = new ContainerBuilder();
+            builder.Register(c =>
+            {
+                return Bus.Factory.CreateUsingRabbitMq(rmq =>
                 {
-
-
-                    var host = cfg.Host(new Uri("rabbitmq://rabbitmq/"), "/", h =>
+                    rmq.Host(new Uri("rabbitmq://rabbitmq"), "/", h =>
                     {
                         h.Username("guest");
                         h.Password("guest");
                     });
-
-
-                    // https://stackoverflow.com/questions/39573721/disable-round-robin-pattern-and-use-fanout-on-masstransit
-                    cfg.ReceiveEndpoint(host, "JewelsOncontainers" + Guid.NewGuid().ToString(), e =>
-                    {
-                        e.LoadFrom(context);
-
-                    });
+                    rmq.ExchangeType = ExchangeType.Fanout;
                 });
 
-                return busControl;
-            })
-                .SingleInstance()
-                .As<IBusControl>()
-                .As<IBus>();
+            }).
+             As<IBusControl>()
+            .As<IBus>()
+            .As<IPublishEndpoint>()
+            .SingleInstance();
 
             builder.Populate(services);
             ApplicationContainer = builder.Build();
-
             return new AutofacServiceProvider(ApplicationContainer);
 
 
-
-
         }
-
         private void ConfigureAuthService(IServiceCollection services)
         {
             // prevent from mapping "sub" claim to nameidentifier.
-            //JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
+            JwtSecurityTokenHandler.DefaultInboundClaimTypeMap.Clear();
 
             var identityUrl = Configuration.GetValue<string>("IdentityUrl");
 
@@ -133,38 +140,38 @@ namespace CartApi
             {
                 options.Authority = identityUrl;
                 options.RequireHttpsMetadata = false;
-                options.Audience = "basket";
+                options.Audience = "order";
+
             });
         }
 
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env, IApplicationLifetime lifetime)
+        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
             if (env.IsDevelopment())
             {
                 app.UseDeveloperExceptionPage();
             }
+
             var pathBase = Configuration["PATH_BASE"];
             if (!string.IsNullOrEmpty(pathBase))
             {
                 app.UsePathBase(pathBase);
             }
 
-            app.UseStaticFiles();
+
             app.UseCors("CorsPolicy");
             app.UseAuthentication();
+
             app.UseSwagger()
-               .UseSwaggerUI(c =>
-               {
-                   c.SwaggerEndpoint($"{ (!string.IsNullOrEmpty(pathBase) ? pathBase : string.Empty) }/swagger/v1/swagger.json", "CartApi V1");
-                   //c.ConfigureOAuth2("basketswaggerui", "", "", "Basket Swagger UI");
-               });
+              .UseSwaggerUI(c =>
+              {
+                  c.SwaggerEndpoint($"{ (!string.IsNullOrEmpty(pathBase) ? pathBase : string.Empty) }/swagger/v1/swagger.json", "OrderApi V1");
+                  //c.ConfigureOAuth2("orderswaggerui", "", "", "Ordering Swagger UI");
+              });
 
             app.UseMvc();
-            var bus = ApplicationContainer.Resolve<IBusControl>();
-            var busHandle = TaskUtil.Await(() => bus.StartAsync());
-            lifetime.ApplicationStopping.Register(() => busHandle.Stop());
         }
     }
 }

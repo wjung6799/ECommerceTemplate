@@ -38,10 +38,10 @@ namespace WebMVC.Controllers
             Dictionary<string, int> quantities, 
             string action)
         {
-            //if (action == "[ Checkout ]")
-            //{
-            //    return RedirectToAction("Create", "Order");
-            //}
+            if (action == "[ Checkout ]")
+            {
+                return RedirectToAction("Create", "Order");
+            }
 
 
             try

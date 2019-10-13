@@ -11,6 +11,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using WebMvc.Services;
 using WebMVC.Infrastructure;
 using WebMVC.Models;
 using WebMVC.Services;
@@ -41,6 +42,7 @@ namespace WebMVC
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddTransient<IIdentityService<ApplicationUser>, IdentityService>();
             services.AddTransient<ICartService, CartService>();
+            services.AddTransient<IOrderService, OrderService>();
 
             var identityUrl = Configuration.GetValue<string>("IdentityUrl");
             var callBackUrl = Configuration.GetValue<string>("CallBackUrl");
