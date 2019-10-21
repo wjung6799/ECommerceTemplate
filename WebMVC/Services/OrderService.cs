@@ -21,7 +21,9 @@ namespace WebMvc.Services
         private readonly IConfiguration _config;
         private readonly IHttpContextAccessor _httpContextAccesor;
         private readonly ILogger _logger;
-        public OrderService(IConfiguration config, IHttpContextAccessor httpContextAccesor, IHttpClient httpClient, ILoggerFactory logger)
+        public OrderService(IConfiguration config, 
+            IHttpContextAccessor httpContextAccesor, 
+            IHttpClient httpClient, ILoggerFactory logger)
         {
             _remoteServiceBaseUrl = $"{config["OrderUrl"]}/api/v1/orders";
             _config = config;

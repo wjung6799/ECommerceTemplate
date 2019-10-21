@@ -28,7 +28,11 @@ namespace WebMvc.Controllers
         private readonly IConfiguration _config;
 
 
-        public OrderController(IConfiguration config, ILogger<OrderController> logger, IOrderService orderSvc, ICartService cartSvc, IIdentityService<ApplicationUser> identitySvc)
+        public OrderController(IConfiguration config, 
+            ILogger<OrderController> logger, 
+            IOrderService orderSvc, 
+            ICartService cartSvc, 
+            IIdentityService<ApplicationUser> identitySvc)
         {
             _identitySvc = identitySvc;
             _orderSvc = orderSvc;
@@ -104,7 +108,7 @@ namespace WebMvc.Controllers
                         int orderId = await _orderSvc.CreateOrder(order);
                         //_logger.LogDebug("User {userName} finished order processing  of {orderId}.", order.UserName, order.OrderId);
 
-                        await _cartSvc.ClearCart(user);
+                        //await _cartSvc.ClearCart(user);
                         return RedirectToAction("Complete", new { id = orderId, userName = user.UserName });
                     }
 

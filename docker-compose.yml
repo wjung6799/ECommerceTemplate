@@ -10,7 +10,13 @@ services:
     build:
       context: .\ProductCatalogAPI
       dockerfile: Dockerfile
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
     environment:
+      ASPNETCORE_ENVIRONMENT: Development
       DatabaseServer: mssqlserver
       DatabaseName: CatalogDb
       DatabaseUser: sa
@@ -30,6 +36,11 @@ services:
       context: .\TokenServiceApi
       dockerfile: Dockerfile
     image: jewels/tokenapi
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       MvcClient: http://localhost:5208
@@ -47,6 +58,11 @@ services:
       context: .\CartApi
       dockerfile: Dockerfile
     image: jewels/cartapi
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       IdentityUrl: http://10.10.10.30:6070
@@ -67,6 +83,11 @@ services:
       context: .\OrderApi
       dockerfile: Dockerfile
     image: jewels/orderapi
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       IdentityUrl: http://10.10.10.30:6070
@@ -91,6 +112,11 @@ services:
       dockerfile: Dockerfile
     image: jewels/webmvc
     container_name: webshop
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "200k"
+        max-file: "10"
     environment:
       CatalogUrl: http://catalog
       ASPNETCORE_ENVIRONMENT: Development
@@ -126,7 +152,7 @@ services:
   basket.data:
     image: redis
     ports:
-      - "6078:6379"  
+      - "6079:6379"  
     networks:
       - backend 
 
@@ -135,9 +161,9 @@ services:
     container_name: rabbitmq
     hostname: myrabbitmq
     ports:
-      - "15672:15672"
-      - "5672:5672"
-      - "5671:5671"
+      - "15673:15672"
+      - "5673:5672"
+      - "5674:5671"
     volumes:
       - ~/rabbitmq:/var/lib/rabbitmq/mnesia   
     networks:
